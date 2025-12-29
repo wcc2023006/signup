@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>报名管理 - 校园活动管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <i class="fas fa-school"></i>
+      <span>校园活动管理系统</span>
+    </div>
+    <div class="nav-links">
+      <a href="/"><i class="fas fa-home"></i> 首页</a>
+      <a href="/activities.html"><i class="fas fa-calendar-alt"></i> 活动管理</a>
+      <a href="/users.html"><i class="fas fa-users"></i> 用户管理</a>
+      <a href="/registrations.html" class="active"><i class="fas fa-clipboard-list"></i> 报名管理</a>
+    </div>
+  </nav>
+
+  <div class="content-section">
+    <h1><i class="fas fa-clipboard-list"></i> 报名管理</h1>
+    <div id="registrations-list">
+      加载中...
+    </div>
+  </div>
+</div>
+
+<script>
+  async function loadRegistrations() {
+      try {
+          const response = await fetch('/api/registrations');
+          const data = await response.json();
+
+          const container = document.getElementById('registrations-list');
+          if (data.data && data.data.length > 0) {
+              container.innerHTML = `
+                  <table class="data-table">
+                      <thead>
+                          <tr>
+                              <th>报名ID</th>
+                              <th>用户ID</th>
+                              <th>活动ID</th>
+                              <th>状态</th>
+                              <th>报名时间</th>
+                              <th>操作</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          ${data.data.map(reg => `
+                              <tr>
+                                  <td>${reg.id}</td>
+                                  <td>${reg.userId}</td>
+                                  <td>${reg.activityId}</td>
+                                  <td>${getStatusText(reg.status)}</td>
+                                  <td>${new Date(reg.signTime).toLocaleString()}</td>
+                                  <td>
+                                      <button onclick="cancelRegistration(${reg.id})"
+                                              class="btn btn-danger btn-sm"
+                                              ${reg.status === 2 ? 'disabled' : ''}>
+                                          <i class="fas fa-times"></i> 取消报名
+                                      </button>
+                                  </td>
+                              </tr>
+                          `).join('')}
+                      </tbody>
+                  </table>
+              `;
+          } else {
+              container.innerHTML = '<p>暂无报名记录</p>';
+          }
+      } catch (error) {
+          container.innerHTML = `<p class="error">加载失败: ${error.message}</p>`;
+      }
+  }
+
+  function getStatusText(status) {
+      switch(status) {
+          case 1: return '<span class="badge badge-success">报名成功</span>';
+          case 2: return '<span class="badge badge-danger">已取消</span>';
+          default: return '<span class="badge">未知</span>';
+      }
+  }
+
+  async function cancelRegistration(id) {
+      if (confirm('确定要取消这个报名吗？')) {
+          try {
+              const response = await fetch(`/api/registrations/${id}/cancel`, {
+                  method: 'POST'
+              });
+              const data = await response.json();
+              if (data.code === 200) {
+                  alert('取消成功！');
+                  loadRegistrations();
+              } else {
+                  alert('取消失败: ' + data.message);
+              }
+          } catch (error) {
+              alert('取消失败: ' + error.message);
+          }
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadRegistrations);
+</script>
+
+<style>
+  .badge-success {
+      background-color: #2ecc71;
+  }
+
+  .badge-danger {
+      background-color: #e74c3c;
+  }
+
+  .badge {
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+  }
+</style>
+</body>
+</html>

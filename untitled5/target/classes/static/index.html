@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏫 校园活动管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-school"></i>
+            <span>校园活动管理系统</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="active"><i class="fas fa-home"></i> 首页</a>
+            <a href="/activities.html"><i class="fas fa-calendar-alt"></i> 活动管理</a>
+            <a href="/users.html"><i class="fas fa-users"></i> 用户管理</a>
+            <a href="/registrations.html"><i class="fas fa-clipboard-list"></i> 报名管理</a>
+        </div>
+    </nav>
+
+    <!-- 欢迎区域 -->
+    <header class="hero">
+        <h1>欢迎使用校园活动管理系统</h1>
+        <p>一个完整的校园活动管理平台，支持活动发布、用户管理、在线报名等功能</p>
+        <div class="hero-stats">
+            <div class="stat-card">
+                <i class="fas fa-calendar-day"></i>
+                <h3 id="activity-count">0</h3>
+                <p>个活动</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-user-friends"></i>
+                <h3 id="user-count">0</h3>
+                <p>位用户</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clipboard-check"></i>
+                <h3 id="registration-count">0</h3>
+                <p>条报名</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- 功能卡片 -->
+    <main class="dashboard">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-calendar-alt"></i>
+                <h2>活动管理</h2>
+            </div>
+            <div class="card-body">
+                <p>查看、创建、编辑校园活动信息</p>
+                <div class="card-actions">
+                    <a href="/activities.html" class="btn btn-primary">
+                        <i class="fas fa-list"></i> 查看所有活动
+                    </a>
+                    <button onclick="loadRecentActivities()" class="btn btn-secondary">
+                        <i class="fas fa-sync"></i> 刷新活动
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div id="recent-activities">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-users"></i>
+                <h2>用户管理</h2>
+            </div>
+            <div class="card-body">
+                <p>管理系统用户信息</p>
+                <div class="card-actions">
+                    <a href="/users.html" class="btn btn-primary">
+                        <i class="fas fa-user-friends"></i> 查看所有用户
+                    </a>
+                    <button onclick="loadRecentUsers()" class="btn btn-secondary">
+                        <i class="fas fa-sync"></i> 刷新用户
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div id="recent-users">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clipboard-list"></i>
+                <h2>快速操作</h2>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <button onclick="testAPI()" class="btn btn-info">
+                        <i class="fas fa-plug"></i> 测试API连接
+                    </button>
+                    <button onclick="checkDatabase()" class="btn btn-success">
+                        <i class="fas fa-database"></i> 检查数据库
+                    </button>
+                    <button onclick="clearCache()" class="btn btn-warning">
+                        <i class="fas fa-broom"></i> 清除缓存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API信息 -->
+    <section class="api-info">
+        <h2><i class="fas fa-code"></i> API接口列表</h2>
+        <div class="api-list">
+            <div class="api-item">
+                <span class="method get">GET</span>
+                <code>/activities</code>
+                <span>获取所有活动</span>
+            </div>
+            <div class="api-item">
+                <span class="method get">GET</span>
+                <code>/activities/available</code>
+                <span>获取可用活动</span>
+            </div>
+            <div class="api-item">
+                <span class="method get">GET</span>
+                <code>/api/users</code>
+                <span>获取所有用户</span>
+            </div>
+            <div class="api-item">
+                <span class="method get">GET</span>
+                <code>/api/registrations</code>
+                <span>获取报名记录</span>
+            </div>
+            <div class="api-item">
+                <span class="method post">POST</span>
+                <code>/api/registrations/register</code>
+                <span>报名活动</span>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>校园活动管理系统 © 2024 | 后端：Spring Boot + MySQL | 前端：HTML + CSS + JavaScript</p>
+        <p>API地址：<code>http://localhost:8088</code></p>
+    </footer>
+</div>
+
+<script>
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStats();
+        loadRecentActivities();
+        loadRecentUsers();
+    });
+
+    // 加载统计数据
+    async function loadStats() {
+        try {
+            // 加载活动数量
+            const activitiesRes = await fetch('/activities');
+            const activitiesData = await activitiesRes.json();
+            document.getElementById('activity-count').textContent = activitiesData.count || 0;
+
+            // 加载用户数量
+            const usersRes = await fetch('/api/users');
+            const usersData = await usersRes.json();
+            document.getElementById('user-count').textContent = usersData.count || 0;
+
+            // 加载报名数量
+            const regRes = await fetch('/api/registrations');
+            const regData = await regRes.json();
+            document.getElementById('registration-count').textContent = regData.count || 0;
+        } catch (error) {
+            console.error('加载统计数据失败:', error);
+            showMessage('加载统计数据失败，请检查API连接', 'error');
+        }
+    }
+
+    // 加载最近活动
+    async function loadRecentActivities() {
+        try {
+            const response = await fetch('/activities');
+            const data = await response.json();
+
+            const container = document.getElementById('recent-activities');
+            if (data.data && data.data.length > 0) {
+                const activities = data.data.slice(0, 3); // 只显示最近3个
+                container.innerHTML = activities.map(activity => `
+                    <div class="list-item">
+                        <strong>${activity.title}</strong>
+                        <span>${activity.college || '未知学院'}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="list-item">暂无活动数据</div>';
+            }
+        } catch (error) {
+            console.error('加载活动失败:', error);
+            document.getElementById('recent-activities').innerHTML =
+                '<div class="list-item error">加载失败</div>';
+        }
+    }
+
+    // 加载最近用户
+    async function loadRecentUsers() {
+        try {
+            const response = await fetch('/api/users');
+            const data = await response.json();
+
+            const container = document.getElementById('recent-users');
+            if (data.data && data.data.length > 0) {
+                const users = data.data.slice(0, 3); // 只显示最近3个
+                container.innerHTML = users.map(user => `
+                    <div class="list-item">
+                        <strong>${user.username}</strong>
+                        <span>${user.role || '用户'}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="list-item">暂无用户数据</div>';
+            }
+        } catch (error) {
+            console.error('加载用户失败:', error);
+            document.getElementById('recent-users').innerHTML =
+                '<div class="list-item error">加载失败</div>';
+        }
+    }
+
+    // 测试API连接
+    async function testAPI() {
+        try {
+            const response = await fetch('/activities');
+            const data = await response.json();
+            showMessage(`API连接正常！返回${data.count}个活动`, 'success');
+        } catch (error) {
+            showMessage('API连接失败：' + error.message, 'error');
+        }
+    }
+
+    // 检查数据库
+    async function checkDatabase() {
+        try {
+            const [activitiesRes, usersRes, regRes] = await Promise.all([
+                fetch('/activities'),
+                fetch('/api/users'),
+                fetch('/api/registrations')
+            ]);
+
+            const [activitiesData, usersData, regData] = await Promise.all([
+                activitiesRes.json(),
+                usersRes.json(),
+                regRes.json()
+            ]);
+
+            showMessage(
+                `数据库正常！活动：${activitiesData.count}，用户：${usersData.count}，报名：${regData.count}`,
+                'success'
+            );
+        } catch (error) {
+            showMessage('数据库检查失败：' + error.message, 'error');
+        }
+    }
+
+    // 清除缓存（重新加载数据）
+    function clearCache() {
+        loadStats();
+        loadRecentActivities();
+        loadRecentUsers();
+        showMessage('缓存已清除，数据已刷新', 'info');
+    }
+
+    // 显示消息
+    function showMessage(message, type = 'info') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' :
+                              type === 'error' ? 'exclamation-circle' :
+                              'info-circle'}"></i>
+            ${message}
+        `;
+
+        document.body.appendChild(messageDiv);
+
+        // 3秒后自动消失
+        setTimeout(() => {
+            messageDiv.style.opacity = '0';
+            setTimeout(() => messageDiv.remove(), 300);
+        }, 3000);
+    }
+</script>
+</body>
+</html>

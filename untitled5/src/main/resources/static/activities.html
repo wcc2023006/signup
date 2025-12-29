@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动管理 - 校园活动管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-school"></i>
+            <span>校园活动管理系统</span>
+        </div>
+        <div class="nav-links">
+            <a href="/"><i class="fas fa-home"></i> 首页</a>
+            <a href="/activities.html" class="active"><i class="fas fa-calendar-alt"></i> 活动管理</a>
+            <a href="/users.html"><i class="fas fa-users"></i> 用户管理</a>
+            <a href="/registrations.html"><i class="fas fa-clipboard-list"></i> 报名管理</a>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <h1><i class="fas fa-calendar-alt"></i> 活动管理</h1>
+        <p>管理校园活动信息，包括创建、编辑、删除活动</p>
+        <div class="header-actions">
+            <button onclick="loadActivities()" class="btn btn-secondary">
+                <i class="fas fa-sync"></i> 刷新列表
+            </button>
+            <button onclick="showCreateForm()" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 创建新活动
+            </button>
+        </div>
+    </header>
+
+    <!-- 活动列表 -->
+    <div class="content-section">
+        <h2><i class="fas fa-list"></i> 活动列表</h2>
+        <div id="activities-list" class="loading">
+            加载中...
+        </div>
+    </div>
+
+    <!-- 创建活动表单（初始隐藏） -->
+    <div id="create-form" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> 创建新活动</h3>
+                <button onclick="hideCreateForm()" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="activity-form" onsubmit="createActivity(event)">
+                    <div class="form-group">
+                        <label for="title"><i class="fas fa-heading"></i> 活动标题</label>
+                        <input type="text" id="title" required placeholder="请输入活动标题">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description"><i class="fas fa-file-alt"></i> 活动描述</label>
+                        <textarea id="description" rows="3" placeholder="请输入活动描述"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startTime"><i class="fas fa-play-circle"></i> 开始时间</label>
+                            <input type="datetime-local" id="startTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endTime"><i class="fas fa-stop-circle"></i> 结束时间</label>
+                            <input type="datetime-local" id="endTime" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="location"><i class="fas fa-map-marker-alt"></i> 活动地点</label>
+                            <input type="text" id="location" placeholder="请输入活动地点">
+                        </div>
+                        <div class="form-group">
+                            <label for="college"><i class="fas fa-university"></i> 所属学院</label>
+                            <input type="text" id="college" placeholder="请输入学院名称">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maxParticipants"><i class="fas fa-users"></i> 最大人数</label>
+                            <input type="number" id="maxParticipants" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="status"><i class="fas fa-toggle-on"></i> 状态</label>
+                            <select id="status">
+                                <option value="1">进行中</option>
+                                <option value="2">已结束</option>
+                                <option value="3">已取消</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" onclick="hideCreateForm()" class="btn btn-secondary">
+                            取消
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存活动
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>校园活动管理系统 © 2024</p>
+    </footer>
+</div>
+
+<script>
+    // 页面加载时加载活动列表
+    document.addEventListener('DOMContentLoaded', loadActivities);
+
+    // 加载活动列表
+    async function loadActivities() {
+        const container = document.getElementById('activities-list');
+        container.className = 'loading';
+        container.innerHTML = '加载中...';
+
+        try {
+            const response = await fetch('/activities');
+            const data = await response.json();
+
+            if (data.data && data.data.length > 0) {
+                container.className = 'activities-grid';
+                container.innerHTML = data.data.map(activity => `
+                    <div class="activity-card" data-id="${activity.id}">
+                        <div class="activity-header">
+                            <h3>${activity.title}</h3>
+                            <span class="activity-status ${getStatusClass(activity.status)}">
+                                ${getStatusText(activity.status)}
+                            </span>
+                        </div>
+                        <div class="activity-body">
+                            <p><i class="fas fa-file-alt"></i> ${activity.description || '暂无描述'}</p>
+                            <p><i class="fas fa-university"></i> ${activity.college || '未知学院'}</p>
+                            <p><i class="fas fa-map-marker-alt"></i> ${activity.location || '未指定地点'}</p>
+                            <p><i class="fas fa-calendar-day"></i> ${formatDate(activity.startTime)} - ${formatDate(activity.endTime)}</p>
+                            <p><i class="fas fa-users"></i> ${activity.currentParticipants || 0}/${activity.maxParticipants || 100} 人</p>
+                        </div>
+                        <div class="activity-actions">
+                            <button onclick="viewActivity(${activity.id})" class="btn btn-info btn-sm">
+                                <i class="fas fa-eye"></i> 查看
+                            </button>
+                            <button onclick="editActivity(${activity.id})" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
+                            <button onclick="deleteActivity(${activity.id})" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.className = 'empty-state';
+                container.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-calendar-times fa-3x"></i>
+                        <h3>暂无活动</h3>
+                        <p>还没有创建任何活动，点击"创建新活动"按钮开始</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            container.className = 'error-state';
+            container.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle fa-3x"></i>
+                    <h3>加载失败</h3>
+                    <p>${error.message}</p>
+                    <button onclick="loadActivities()" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> 重试
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // 显示创建表单
+    function showCreateForm() {
+        document.getElementById('create-form').style.display = 'block';
+    }
+
+    // 隐藏创建表单
+    function hideCreateForm() {
+        document.getElementById('create-form').style.display = 'none';
+    }
+
+    // 创建活动
+    async function createActivity(event) {
+        event.preventDefault();
+
+        const activity = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            location: document.getElementById('location').value,
+            college: document.getElementById('college').value,
+            maxParticipants: parseInt(document.getElementById('maxParticipants').value),
+            status: parseInt(document.getElementById('status').value),
+            currentParticipants: 0
+        };
+
+        try {
+            // 注意：这里需要你的后端有对应的POST接口
+            // 暂时先模拟创建
+            showMessage('创建功能需要后端支持POST接口', 'info');
+            hideCreateForm();
+            loadActivities(); // 刷新列表
+        } catch (error) {
+            showMessage('创建失败：' + error.message, 'error');
+        }
+    }
+
+    // 查看活动详情
+    function viewActivity(id) {
+        showMessage(`查看活动 ${id}，需要实现详情页面`, 'info');
+    }
+
+    // 编辑活动
+    function editActivity(id) {
+        showMessage(`编辑活动 ${id}，需要实现编辑功能`, 'info');
+    }
+
+    // 删除活动
+    async function deleteActivity(id) {
+        if (confirm(`确定要删除活动 #${id} 吗？`)) {
+            try {
+                // 注意：这里需要你的后端有对应的DELETE接口
+                // 暂时先模拟删除
+                showMessage(`活动 ${id} 删除成功（模拟）`, 'success');
+                loadActivities(); // 刷新列表
+            } catch (error) {
+                showMessage('删除失败：' + error.message, 'error');
+            }
+        }
+    }
+
+    // 工具函数
+    function formatDate(dateString) {
+        if (!dateString) return '未设置';
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN');
+    }
+
+    function getStatusClass(status) {
+        switch(status) {
+            case 1: return 'status-active';
+            case 2: return 'status-ended';
+            case 3: return 'status-cancelled';
+            default: return 'status-unknown';
+        }
+    }
+
+    function getStatusText(status) {
+        switch(status) {
+            case 1: return '进行中';
+            case 2: return '已结束';
+            case 3: return '已取消';
+            default: return '未知';
+        }
+    }
+
+    function showMessage(message, type = 'info') {
+        // 使用之前定义的showMessage函数
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' :
+                              type === 'error' ? 'exclamation-circle' :
+                              'info-circle'}"></i>
+            ${message}
+        `;
+
+        document.body.appendChild(messageDiv);
+
+        setTimeout(() => {
+            messageDiv.style.opacity = '0';
+            setTimeout(() => messageDiv.remove(), 300);
+        }, 3000);
+    }
+</script>
+
+<style>
+    /* 活动页面特有样式 */
+    .page-header {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin: 20px 0;
+    }
+
+    .page-header h1 {
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 1rem;
+    }
+
+    .content-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin: 20px 0;
+    }
+
+    .content-section h2 {
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* 活动网格 */
+    .activities-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+    }
+
+    /* 活动卡片 */
+    .activity-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .activity-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .activity-header {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .activity-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .activity-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .status-active {
+        background: #2ecc71;
+    }
+
+    .status-ended {
+        background: #95a5a6;
+    }
+
+    .status-cancelled {
+        background: #e74c3c;
+    }
+
+    .status-unknown {
+        background: #f39c12;
+    }
+
+    .activity-body {
+        padding: 1rem;
+    }
+
+    .activity-body p {
+        margin: 0.5rem 0;
+        color: #555;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .activity-body i {
+        color: #3498db;
+        min-width: 20px;
+    }
+
+    .activity-actions {
+        padding: 1rem;
+        background: #f8f9fa;
+        display: flex;
+        gap: 10px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+
+    /* 空状态 */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .empty-message {
+        color: #7f8c8d;
+    }
+
+    .empty-message i {
+        color: #bdc3c7;
+        margin-bottom: 1rem;
+    }
+
+    /* 错误状态 */
+    .error-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .error-message {
+        color: #e74c3c;
+    }
+
+    .error-message i {
+        margin-bottom: 1rem;
+    }
+
+    /* 模态框 */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,
